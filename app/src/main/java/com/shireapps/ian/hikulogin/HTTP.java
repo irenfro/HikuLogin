@@ -37,8 +37,6 @@ public abstract class HTTP {
 
             int responseCode=conn.getResponseCode();
 
-            System.out.println(responseCode);
-
             if (responseCode == HttpsURLConnection.HTTP_OK) {
                 response = IOUtils.toString(conn.getInputStream(), "UTF-8");
             }
@@ -49,7 +47,7 @@ public abstract class HTTP {
         return response;
     }
 
-    protected String getPostData(HashMap<String, String> params) throws UnsupportedEncodingException {
+    protected static String encodeParams(HashMap<String, String> params) throws UnsupportedEncodingException {
         StringBuilder result = new StringBuilder();
         boolean first = true;
         for(Map.Entry<String, String> entry : params.entrySet()){
@@ -70,7 +68,7 @@ public abstract class HTTP {
         return requestURL;
     }
 
-    protected void writeBody(HttpURLConnection conn, HashMap<String, String> postDataParams) throws UnsupportedEncodingException, IOException {
+    protected void writeBody(HttpURLConnection conn, HashMap<String, String> postDataParams) throws IOException {
 
     }
 

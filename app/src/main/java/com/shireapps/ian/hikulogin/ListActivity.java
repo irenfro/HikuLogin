@@ -1,26 +1,38 @@
 package com.shireapps.ian.hikulogin;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+
+import android.annotation.TargetApi;
+
 import android.content.Intent;
+
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Parcelable;
+
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
+
 import android.view.View;
+
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 
 public class ListActivity extends AppCompatActivity {
 
     private List[] l;
-    private ArrayList<String> names;
+    private HashMap<String, List> names;
+    private View mProgressView;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,52 +50,84 @@ public class ListActivity extends AppCompatActivity {
             }
         });
 
-        Parcelable[] p = getIntent().getParcelableArrayExtra("list");
-        l = new List[p.length];
-
-        for(int i = 0; i < p.length; i++) {
-            l[i] = (List) p[i];
-        }
-
-        convertData();
-        uploadData();
         getSupportActionBar().setTitle("Shopping List");
+        mProgressView = findViewById(R.id.login_progress);
+        showProgress(true);
+        new UserGetListTask().execute();
+    }
+
+    public class UserGetListTask extends AsyncTask<Object, Void, HikuList> {
+
+        @Override
+        protected HikuList doInBackground(Object... unused) {
+            HikuList list = new HikuList();
+            list.getList();
+            return list;
+        }
+
+        @Override
+        protected void onPostExecute(HikuList response) {
+            showProgress(false);
+
+            if(!response.success()) {
+                Toast.makeText(getApplicationContext(),
+                        response.getErrorMessage(), Toast.LENGTH_SHORT).show();
+            } else {
+                l = response.getData().getList();
+                names = response.getMappedList();
+                populateListView();
+            }
+        }
 
     }
 
+    /**
+     * Shows the progress UI and hides the login form.
+     */
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
+    private void showProgress(final boolean show) {
+        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
+        // for very easy animations. If available, use these APIs to fade-in
+        // the progress spinner.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
-    private void convertData() {
-        names = new ArrayList<>();
-        for(int i = 0; i < l.length; i++) {
-            names.add(l[i].getName());
+            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
+            mProgressView.animate().setDuration(shortAnimTime).alpha(
+                    show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
+                }
+            });
+        } else {
+            // The ViewPropertyAnimator APIs are not available, so simply show
+            // and hide the relevant UI components.
+            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
         }
     }
 
 
-    private void uploadData() {
+
+
+    private void populateListView() {
         ListView listView = (ListView) findViewById(R.id.list);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, names);
+        ListItemArrayAdapter adapter = new ListItemArrayAdapter(this, android.R.layout.simple_list_item_1, android.R.id.text1, names);
         listView.setAdapter(adapter);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 TextView tv = (TextView) view.findViewById(android.R.id.text1);
                 String s = tv.getText().toString();
-                List item = new List();
-                for (int i = 0; i < l.length; i++) {
-                    if (l[i].getName().equals(s)) {
-                        item = l[i];
-                    }
-                }
-                startNextClass(item);
+                List item = names.get(s);
+                openDetailView(item);
             }
         });
     }
 
-    public void startNextClass(List item) {
+    public void openDetailView(List item) {
         Intent intent = new Intent(this, DetailView.class);
         intent.putExtra("item", item);
-        Log.d("List", "before: " + item.getName());
         startActivity(intent);
     }
 

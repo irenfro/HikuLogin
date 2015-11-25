@@ -18,12 +18,12 @@ public class HTTPPost extends HTTP {
     }
 
     @Override
-    protected void writeBody(HttpURLConnection conn, HashMap<String, String> postDataParams) throws UnsupportedEncodingException, IOException{
+    protected void writeBody(HttpURLConnection conn, HashMap<String, String> postDataParams) throws IOException{
         conn.setDoOutput(true);
         OutputStream os = conn.getOutputStream();
         BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(os, "UTF-8"));
-        writer.write(getPostData(postDataParams));
+        writer.write(encodeParams(postDataParams));
 
         writer.flush();
         writer.close();

@@ -3,28 +3,35 @@ package com.shireapps.ian.hikulogin;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.CursorLoader;
+import android.content.Loader;
+
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+
 import android.app.LoaderManager.LoaderCallbacks;
 
-import android.content.CursorLoader;
-import android.content.Loader;
 import android.database.Cursor;
-import android.net.Uri;
-import android.os.AsyncTask;
 
+import android.net.Uri;
+
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+
 import android.provider.ContactsContract;
+
 import android.text.TextUtils;
-import android.util.Log;
+
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
+
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -32,32 +39,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.io.IOUtils;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.security.MessageDigest;
-import java.security.SignatureException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
 
-import javax.net.ssl.HttpsURLConnection;
 
 import static android.Manifest.permission.READ_CONTACTS;
 
@@ -82,13 +66,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
-
-    protected String appID = "e2a01662323845bf5b289b90f4c67dbae982d65247f235";
-    protected String secret = "18f9d67455211c636e";
-    protected Request r;
-    private boolean isLoggedIn = false;
-    private String token;
-    private String urlBase = "https://hiku-staging.herokuapp.com/api/v1/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,160 +101,40 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         getSupportActionBar().setTitle("Login");
     }
 
-    private void startNewActivity() {
-        Intent intent = new Intent(this, ListActivity.class);
-        intent.putExtra("list", r.getResponse().getData().getList());
-        Log.d("Login", Arrays.toString(r.getResponse().getData().getList()));
-        startActivity(intent);
-    }
-
-    public String[] getMandParams() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd H:mm:ss.SSSSSS");
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        String utcTime = sdf.format(new Date());
-        String s = appID + secret + utcTime;
-        String hash = "";
-        try {
-            hash = getDigest("SHA-256", s, true);
-        } catch (SignatureException e) {
-            e.printStackTrace();
-        }
-        return new String[]{hash, utcTime};
-    }
-
-    public String downloadURL(String requestURL, String method, HashMap<String, String> postDataParams) {
-
-        URL url;
-        String response = "";
-        try {
-            if(method.equals("GET")) {
-                requestURL += "?" + getPostData(postDataParams);
-            }
-            url = new URL(requestURL);
-
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setReadTimeout(15000);
-            conn.setConnectTimeout(15000);
-            conn.setRequestMethod(method);
-            conn.setDoInput(true);
-
-            Log.d("Login", method);
-            Log.d("Login", url.toString());
-            if(method.equals("POST")) {
-                conn.setDoOutput(true);
-                OutputStream os = conn.getOutputStream();
-                BufferedWriter writer = new BufferedWriter(
-                        new OutputStreamWriter(os, "UTF-8"));
-                writer.write(getPostData(postDataParams));
-
-                writer.flush();
-                writer.close();
-                os.close();
-            }
-
-            int responseCode=conn.getResponseCode();
-
-            System.out.println(responseCode);
-
-            if (responseCode == HttpsURLConnection.HTTP_OK) {
-                response = IOUtils.toString(conn.getInputStream(), "UTF-8");
-
-            }
-            else {
-                response="";
-
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return response;
-    }
-
-    public String getDigest(String algorithm, String data, boolean toLower)
-            throws SignatureException {
-        try {
-            MessageDigest mac = MessageDigest.getInstance(algorithm);
-            mac.update(data.getBytes("UTF-8"));
-            return toLower ?
-                    new String(toHex(mac.digest())).toLowerCase() : new String(toHex(mac.digest()));
-        } catch (Exception e) {
-            throw new SignatureException(e);
-        }
-    }
-
-    public  String toHex(byte[] bytes) {
-        BigInteger bi = new BigInteger(1, bytes);
-        return String.format("%0" + (bytes.length << 1) + "X", bi);
-    }
-
-    private String getPostData(HashMap<String, String> params) throws UnsupportedEncodingException{
-        StringBuilder result = new StringBuilder();
-        boolean first = true;
-        for(Map.Entry<String, String> entry : params.entrySet()){
-            if (first)
-                first = false;
-            else
-                result.append("&");
-
-            result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
-            result.append("=");
-            result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-        }
-
-        return result.toString();
-    }
 
     /**
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Object, Void, String> {
+    public class UserLoginTask extends AsyncTask<Object, Void, HikuLogin> {
 
         private final String mEmail;
         private final String mPassword;
 
-        UserLoginTask(String email, String password) {
+        public UserLoginTask(String email, String password) {
             mEmail = email;
             mPassword = password;
         }
 
         @Override
-        protected String doInBackground(Object... urls) {
-            String[] params = getMandParams();
-
-            HashMap<String, String> map = new HashMap<>();
-            map.put("app_id", appID);
-            map.put("time", params[1]);
-            map.put("sig", params[0]);
-            map.put("email", mEmail);
-            map.put("password", mPassword);
-
-            return new HTTPPost().doRequest((String) urls[0], map);
-
+        protected HikuLogin doInBackground(Object... unused) {
+            HikuLogin login = new HikuLogin();
+            login.login(mEmail, mPassword);
+            return login;
         }
 
         @Override
-        protected void onPostExecute(String response) {
+        protected void onPostExecute(HikuLogin response) {
             mAuthTask = null;
-            showProgress(false);
 
-            Gson gson = new Gson();
-            r = gson.fromJson(response, Request.class);
-
-            if(r == null) {
+            if(!response.success()) {
                 Toast.makeText(getApplicationContext(),
-                        "Sorry, something went wrong!", Toast.LENGTH_SHORT).show();
-            } else if(r.getResponse().getStatus().equals("error")) {
-                Toast.makeText(getApplicationContext(),r.getResponse().getErrMsg(), Toast.LENGTH_SHORT).show();
-            } else if(!isLoggedIn){
-                showProgress(true);
-                isLoggedIn = true;
-                token = r.getResponse().getData().getToken();
-                Log.d("LoginToken", token);
-                (new UserGetListTask()).execute(urlBase + "list");
+                        response.getErrorMessage(), Toast.LENGTH_SHORT).show();
+                showProgress(false);
             } else {
-                startNewActivity();
+                Intent intent = new Intent(getApplicationContext(), ListActivity.class);
+                showProgress(false);
+                startActivity(intent);
             }
         }
 
@@ -285,89 +142,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         protected void onCancelled() {
             mAuthTask = null;
             showProgress(false);
-        }
-    }
-
-    public class UserGetListTask extends AsyncTask<Object, Void, String> {
-
-        @Override
-        protected String doInBackground(Object... urls) {
-            String[] params = getMandParams();
-
-            HashMap<String, String> map = new HashMap<>();
-            map.put("app_id", appID);
-            map.put("time", params[1]);
-            map.put("sig", params[0]);
-            map.put("token", token);
-
-            return new HTTPGet().doRequest((String) urls[0], map);
-
-        }
-
-        @Override
-        protected void onPostExecute(String response) {
-            mAuthTask = null;
-            showProgress(false);
-
-            Gson gson = new Gson();
-            r = gson.fromJson(response, Request.class);
-
-            Log.d("List", response);
-
-            if(r == null) {
-                Toast.makeText(getApplicationContext(),
-                        "Sorry, something went wrong!", Toast.LENGTH_SHORT).show();
-            } else if(r.getResponse().getStatus().equals("error")) {
-                Toast.makeText(getApplicationContext(),r.getResponse().getErrMsg(), Toast.LENGTH_SHORT).show();
-            } else {
-                startNewActivity();
-            }
-        }
-
-    }
-
-
-
-        private void populateAutoComplete() {
-        if (!mayRequestContacts()) {
-            return;
-        }
-
-        getLoaderManager().initLoader(0, null, this);
-    }
-
-    private boolean mayRequestContacts() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true;
-        }
-        if (checkSelfPermission(READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-        if (shouldShowRequestPermissionRationale(READ_CONTACTS)) {
-            Snackbar.make(mEmailView, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
-                    .setAction(android.R.string.ok, new View.OnClickListener() {
-                        @Override
-                        @TargetApi(Build.VERSION_CODES.M)
-                        public void onClick(View v) {
-                            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
-                        }
-                    });
-        } else {
-            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
-        }
-        return false;
-    }
-
-    /**
-     * Callback received when a permissions request has been completed.
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_READ_CONTACTS) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                populateAutoComplete();
-            }
         }
     }
 
@@ -420,7 +194,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // perform the user login attempt.
             showProgress(true);
             mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute(urlBase + "login");
+            mAuthTask.execute();
         }
     }
 
@@ -523,5 +297,50 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mEmailView.setAdapter(adapter);
     }
+
+    private void populateAutoComplete() {
+        if (!mayRequestContacts()) {
+            return;
+        }
+
+        getLoaderManager().initLoader(0, null, this);
+    }
+
+    private boolean mayRequestContacts() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true;
+        }
+        if (checkSelfPermission(READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            return true;
+        }
+        if (shouldShowRequestPermissionRationale(READ_CONTACTS)) {
+            Snackbar.make(mEmailView, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
+                    .setAction(android.R.string.ok, new View.OnClickListener() {
+                        @Override
+                        @TargetApi(Build.VERSION_CODES.M)
+                        public void onClick(View v) {
+                            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
+                        }
+                    });
+        } else {
+            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
+        }
+        return false;
+    }
+
+    /**
+     * Callback received when a permissions request has been completed.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode == REQUEST_READ_CONTACTS) {
+            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                populateAutoComplete();
+            }
+        }
+    }
+
+
 }
 

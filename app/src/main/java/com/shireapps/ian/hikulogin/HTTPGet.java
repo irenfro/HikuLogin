@@ -13,7 +13,7 @@ public class HTTPGet extends HTTP {
     }
 
     protected String getCompleteURL(String requestURL, HashMap<String, String> postDataParams) throws UnsupportedEncodingException {
-        return requestURL += "?" + getPostData(postDataParams);
+        return requestURL += "?" + encodeParams(postDataParams);
 
     }
 }
