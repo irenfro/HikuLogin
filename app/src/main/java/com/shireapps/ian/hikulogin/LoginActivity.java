@@ -250,12 +250,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             map.put("app_id", appID);
             map.put("time", params[1]);
             map.put("sig", params[0]);
-            String method;
             map.put("email", mEmail);
             map.put("password", mPassword);
-            method = "POST";
 
-            return downloadURL((String) urls[0], method,map);
+            return new HTTPPost().doRequest((String) urls[0], map);
 
         }
 
@@ -266,8 +264,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
             Gson gson = new Gson();
             r = gson.fromJson(response, Request.class);
-
-            Log.d("List", response);
 
             if(r == null) {
                 Toast.makeText(getApplicationContext(),
@@ -302,10 +298,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             map.put("app_id", appID);
             map.put("time", params[1]);
             map.put("sig", params[0]);
-            String method = "GET";
             map.put("token", token);
 
-            return downloadURL((String) urls[0], method,map);
+            return new HTTPGet().doRequest((String) urls[0], map);
 
         }
 
